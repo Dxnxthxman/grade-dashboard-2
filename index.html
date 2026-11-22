@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Grade Dashboard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/innks/NanumSquareRound@master/nanumsquareround.min.css" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="app">
+    <!-- ===== Top header (portal style) ===== -->
+    <header class="topbar">
+      <div class="topbar-inner">
+        <button type="button" class="brand" data-goto="dashboard" aria-label="대시보드로 이동">
+          <span class="brand-logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 3 1 9l11 6 9-4.91V17h2V9L12 3Zm-6.5 9.4V16c0 1.66 2.91 3.5 6.5 3.5s6.5-1.84 6.5-3.5v-3.6L12 16l-6.5-3.6Z" /></svg>
+          </span>
+          <span class="brand-name"><b>My</b>Grade</span>
+        </button>
+
+        <form class="search" id="search-form" role="search">
+          <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4a6 6 0 1 0 3.74 10.69l4.28 4.29 1.42-1.42-4.29-4.28A6 6 0 0 0 10 4Zm0 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8Z" /></svg>
+          <input type="search" id="global-search" placeholder="과목, 시험명, 학기로 검색" autocomplete="off" aria-label="성적 기록 검색" />
+          <button type="submit" class="search-btn">검색</button>
+        </form>
+
+        <div class="topbar-actions">
+          <button type="button" id="export-csv" class="text-btn">CSV 내보내기</button>
+          <button type="button" id="reset-data" class="text-btn text-btn-danger">전체 초기화</button>
+        </div>
+      </div>
+
+      <nav class="nav" aria-label="주요 메뉴">
+        <div class="nav-inner">
+          <button type="button" class="nav-item is-active" data-view="dashboard">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4v9Zm0 7h6v-5H4v5Zm10 0h6v-9h-6v9Zm0-16v5h6V4h-6Z" /></svg>
+            <span>대시보드</span>
+          </button>
+          <button type="button" class="nav-item" data-view="subjects">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm1 4v2h9V7H7Zm0 4v2h9v-2H7Zm0 4v2h6v-2H7Z" /></svg>
+            <span>과목 관리</span>
+          </button>
+          <button type="button" class="nav-item" data-view="grades">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2Z" /></svg>
+            <span>성적 입력</span>
+          </button>
+          <button type="button" class="nav-item" data-view="records">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v2H4V5Zm0 6h16v2H4v-2Zm0 6h16v2H4v-2Z" /></svg>
+            <span>성적 기록</span>
+          </button>
+        </div>
+      </nav>
+    </header>
+
+    <main class="main">
+      <header class="page-header">
+        <div>
+          <h1 id="page-title">대시보드</h1>
+          <p id="page-subtitle" class="page-subtitle">한눈에 보는 나의 성적 현황</p>
+        </div>
+        <button type="button" id="header-action" class="btn btn-primary" data-goto="grades">+ 성적 입력</button>
+      </header>
+
+      <!-- ===== Dashboard ===== -->
+      <section id="view-dashboard" class="view is-active">
+        <div id="dashboard-empty" class="empty-banner hidden">
+          <div>
+            <h2>아직 입력된 성적이 없어요</h2>
+            <p>과목을 먼저 등록한 뒤 시험 성적을 입력하면 평균과 그래프가 자동으로 만들어져요.</p>
+          </div>
+          <div class="empty-banner-actions">
+            <button type="button" class="btn btn-outline" data-goto="subjects">과목 추가하기</button>
+            <button type="button" class="btn btn-primary" data-goto="grades">성적 입력하기</button>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <article class="card stat-card">
+            <p class="stat-label">등록 과목</p>
+            <p class="stat-value" id="stat-subjects">0</p>
+            <p class="stat-meta">개 과목</p>
+          </article>
+          <article class="card stat-card">
+            <p class="stat-label">응시한 시험</p>
+            <p class="stat-value" id="stat-exams">0</p>
+            <p class="stat-meta">회</p>
+          </article>
+          <article class="card stat-card stat-card-accent">
+            <p class="stat-label">전체 평균</p>
+            <p class="stat-value" id="stat-average">-</p>
+            <p class="stat-meta">모든 시험의 백분율 평균</p>
+          </article>
+          <article class="card stat-card">
+            <p class="stat-label">최고 과목 평균</p>
+            <p class="stat-value" id="stat-highest">-</p>
+            <p class="stat-meta" id="stat-highest-name">데이터 없음</p>
+          </article>
+          <article class="card stat-card">
+            <p class="stat-label">최저 과목 평균</p>
+            <p class="stat-value" id="stat-lowest">-</p>
+            <p class="stat-meta" id="stat-lowest-name">데이터 없음</p>
+          </article>
+        </div>
+
+        <div class="charts-grid">
+          <article class="card chart-card">
+            <div class="card-header">
+              <div>
+                <h2>과목별 평균</h2>
+                <p class="card-subtitle">백분율로 환산한 과목별 평균 점수</p>
+              </div>
+            </div>
+            <div class="chart-wrapper" id="bar-chart-wrapper">
+              <canvas id="bar-chart"></canvas>
+            </div>
+            <p class="empty-state hidden" id="bar-chart-empty">성적을 입력하면 과목별 평균 그래프가 표시돼요.</p>
+          </article>
+
+          <article class="card chart-card">
+            <div class="card-header">
+              <div>
+                <h2>성적 추이</h2>
+                <p class="card-subtitle">학년 · 학기 · 시험 순서대로 본 점수 변화</p>
+              </div>
+              <select id="line-subject-filter" class="select-sm" aria-label="성적 추이 과목 선택"></select>
+            </div>
+            <div class="chart-wrapper" id="line-chart-wrapper">
+              <canvas id="line-chart"></canvas>
+            </div>
+            <p class="empty-state hidden" id="line-chart-empty">성적을 입력하면 학기별 점수 변화가 표시돼요.</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- ===== Subjects ===== -->
+      <section id="view-subjects" class="view">
+        <div class="two-column">
+          <article class="card">
+            <h2 id="subject-form-title">새 과목 추가</h2>
+            <form id="subject-form" class="form" novalidate>
+              <label class="field">
+                <span>과목명</span>
+                <input type="text" id="subject-name" maxlength="30" placeholder="예: 수학" autocomplete="off" />
+              </label>
+              <p class="form-error" id="subject-error" role="alert"></p>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="subject-submit">과목 추가</button>
+                <button type="button" class="btn btn-ghost hidden" id="subject-cancel">취소</button>
+              </div>
+            </form>
+          </article>
+
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <h2>등록된 과목</h2>
+                <p class="card-subtitle" id="subject-count-label">0개 과목</p>
+              </div>
+            </div>
+            <ul class="subject-list" id="subject-list"></ul>
+            <p class="empty-state hidden" id="subject-empty">아직 등록된 과목이 없어요. 첫 과목을 추가해 보세요.</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- ===== Grade input ===== -->
+      <section id="view-grades" class="view">
+        <article class="card form-card">
+          <h2 id="exam-form-title">시험 성적 입력</h2>
+
+          <div id="exam-no-subject" class="notice hidden">
+            <p>성적을 입력하려면 먼저 과목을 등록해야 해요.</p>
+            <button type="button" class="btn btn-outline" data-goto="subjects">과목 추가하러 가기</button>
+          </div>
+
+          <form id="exam-form" class="form form-grid" novalidate>
+            <label class="field">
+              <span>과목</span>
+              <select id="exam-subject"></select>
+            </label>
+            <label class="field">
+              <span>학년</span>
+              <select id="exam-grade-year"></select>
+            </label>
+            <label class="field">
+              <span>학기</span>
+              <select id="exam-semester"></select>
+            </label>
+            <label class="field">
+              <span>시험 구분</span>
+              <select id="exam-type"></select>
+            </label>
+            <label class="field">
+              <span>시험명 <small class="optional">(선택)</small></span>
+              <input type="text" id="exam-name" maxlength="50" placeholder="비워두면 '2학년 1학기 중간고사'처럼 자동 입력" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span>시험 날짜</span>
+              <input type="date" id="exam-date" />
+            </label>
+            <label class="field">
+              <span>획득 점수</span>
+              <input type="number" id="exam-score" min="0" step="any" inputmode="decimal" placeholder="예: 85" />
+            </label>
+            <label class="field">
+              <span>만점</span>
+              <input type="number" id="exam-max" min="0" step="any" inputmode="decimal" value="100" />
+            </label>
+            <div class="percent-preview full" id="exam-percent-box">
+              <span>환산 점수 (백분율)</span>
+              <strong id="exam-percent">-</strong>
+            </div>
+            <p class="form-error full" id="exam-error" role="alert"></p>
+            <div class="form-actions full">
+              <button type="submit" class="btn btn-primary" id="exam-submit">성적 저장</button>
+              <button type="button" class="btn btn-ghost hidden" id="exam-cancel">수정 취소</button>
+            </div>
+          </form>
+        </article>
+      </section>
+
+      <!-- ===== Records ===== -->
+      <section id="view-records" class="view">
+        <article class="card">
+          <div class="card-header">
+            <div>
+              <h2>전체 성적 기록</h2>
+              <p class="card-subtitle" id="record-count-label">0건</p>
+            </div>
+            <div class="filter-group">
+              <select id="record-term-filter" class="select-sm" aria-label="성적 기록 학기 필터"></select>
+              <select id="record-subject-filter" class="select-sm" aria-label="성적 기록 과목 필터"></select>
+            </div>
+          </div>
+          <div class="search-chip hidden" id="record-search-chip">
+            <span><b id="record-search-text"></b> 검색 결과</span>
+            <button type="button" id="record-search-clear" aria-label="검색 지우기">검색 지우기 ✕</button>
+          </div>
+          <div class="table-wrapper" id="record-table-wrapper">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>과목</th>
+                  <th>학기 · 구분</th>
+                  <th>시험명</th>
+                  <th>날짜</th>
+                  <th class="num">점수</th>
+                  <th>환산 점수</th>
+                  <th class="actions-col">관리</th>
+                </tr>
+              </thead>
+              <tbody id="record-table"></tbody>
+            </table>
+          </div>
+          <p class="empty-state hidden" id="record-empty">표시할 성적 기록이 없어요.</p>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
